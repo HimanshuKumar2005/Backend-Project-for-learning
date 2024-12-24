@@ -1,0 +1,11 @@
+1.used the npm init command to initialise the .json file
+2.made a readme file
+3.create a public folder ,but empty folder is not tracked by the github... so we add a gitkeep file inside it to be tracked..
+4. Make a .gitignore file and take out the detail from gitignore generator for node..
+
+5.make a .env file..that contains keys.. & secrets..
+6.make a src folder & created .js file inside it..
+7.Now add "type" : "module" in .json , so that the .js file will be treated as ES module instead of commonJS
+8. Now install nodemon as dev-dependency.. so that the restarting problem can be overcomed.. using npm i -D nodemon command..
+9.added a script "dev": "nodemon src/index.js" just to run
+

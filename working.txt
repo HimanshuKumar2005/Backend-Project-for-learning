@@ -9,3 +9,5 @@
 8. Now install nodemon as dev-dependency.. so that the restarting problem can be overcomed.. using npm i -D nodemon command..
 9.added a script "dev": "nodemon src/index.js" just to run
 
+10.mkdir controllers db middlewares models routes utils , made these folders to the src..
+11.adding npm prettier , to overcome the conflict that arises from ; this one , some teammate uses this one , someone not..

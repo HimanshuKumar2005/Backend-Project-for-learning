@@ -11,3 +11,8 @@
 
 10.mkdir controllers db middlewares models routes utils , made these folders to the src..
 11.adding npm prettier , to overcome the conflict that arises from ; this one , some teammate uses this one , someone not..
+
+lec - 7
+Now install the packages.. through npm install mongoose express dotenv
+
+13. ..

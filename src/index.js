@@ -4,7 +4,7 @@
 import dotenv from "dotenv" // import feature is not given to the doucmentation but we can use through experimental feature...
 
 import connectDB from "./db/index.js"  //it's important to write the file index.js... otherwise will give error..
-
+import {app} from "./app.js"
 dotenv.config({
     path : './env'
 })

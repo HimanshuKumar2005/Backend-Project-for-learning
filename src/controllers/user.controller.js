@@ -4,6 +4,28 @@ import {User} from "../models/user.model.js"
 import { uploadOnCloudinary } from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 
+import jwt from "jsonwebtoken"
+import mongoose  from "mongoose"
+
+const generateAccessAndRefreshToken = async(userId) =>{
+
+   try{
+      const user = await User.findById(userId);
+      const accessToken = user.generateAccessToken()
+      const refreshToken = user.generateRefreshToken()
+
+      //Now store the refreshToken in the DB
+      user.refreshToken = refreshToken;
+      //saving to the DB
+      await user.save({ validateBeforeSave :false})
+       
+      return {accessToken, refreshToken}; 
+
+   }
+   catch(error){
+      throw new ApiError(500,"Something went wrong while generating refresh and access Token");
+   }
+}
 
 const registerUser = asyncHandler( async (req,res)=>{
    /*//user registration steps
@@ -33,7 +55,7 @@ const registerUser = asyncHandler( async (req,res)=>{
         throw new ApiError(400, "All fields are required");
     }
 
-    const existedUser = User.findOne({
+    const existedUser = await User.findOne({
         $or:[{username},{email}]
     })
 
@@ -61,7 +83,7 @@ const registerUser = asyncHandler( async (req,res)=>{
    const user = await User.create({
     fullName,
     avatar : avatar.url,
-    coverimage: coverImage?.url || "", //optional ? means
+    coverImage: coverImage?.url || "", //optional ? means
     email,
     password,
     username : username.toLowerCase()
@@ -84,4 +106,100 @@ const registerUser = asyncHandler( async (req,res)=>{
      
 })
 
-export {registerUser}
+//Lec : 15
+const loginUser = asyncHandler( async (req,res) =>{
+   //writing the steps by myself
+   /**
+    * 1.take username or email or number.. and also the password..
+    * 2.Check this username or email or number exists as a user or not
+    * if not then throw an error
+    * 3.if exists then match the password 
+    * if not matched then throw error
+    * if matched then logged in successfully..
+    * 4.Access & refresh token.. generation..
+    * 5.Send cookies
+    */
+   const {email, username, password} = req.body;  //taken data from database
+
+   if(!username || !email){
+      throw new ApiError(400,"username or email is required");
+   }
+
+   //Now finding the username or email from the database using findOne() ,method from MongoDB
+   const user =  await User.findOne({  //$or : mongoDB operator
+      $or: [{username},{email}]  //used await bcz DB is in another continent
+   })
+
+   if(!user){
+      throw new ApiError(404,"User not found");
+   }
+
+   //checking password..
+   const isPasswordCorrect = await user.isPasswordCorrect(password);
+
+   if(!isPasswordCorrect){
+      throw new ApiError(401,"Invalid User credential..");
+   }
+   //generating accessToken & refreshToken..
+   const {accessToken, refreshToken} = await generateAccessAndRefreshToken(user._id); //time lag sakta h issiliye await lagaya
+
+   const loggedInUser = await User.findById(user._id).select(" -password -refreshToken");
+
+    //cookies
+    const options ={ //by default cookie is modifiable through frontend but by making 
+      //true the following field we make it only modifiable through servers..
+      httpOnly : true,
+      secure : true
+    }
+    //200 mean ,sara kaam achhe se ho gya h..
+   return res.status(200).cookie("accesToken",accessToken,options) //adding cookies..
+   .cookie("refreshToken",refreshToken,options)
+   .json(
+      new ApiResponse(  //sending response
+         200,
+         {
+            user : loggedInUser, accessToken,
+            refreshToken 
+         },
+
+         "User logged in successfully"
+      )
+   )
+
+
+
+
+})
+
+//Lec : 15 logout
+const logoutUser = asyncHandler( async(req,res)=>{
+     await User.findByIdAndUpdate(
+      req.user._id,
+      {
+         $set:{
+            refreshToken:undefined
+         }
+      },
+      {
+         new : true //this will retain the new values..
+      }
+     )
+
+     const options ={ //by default cookie is modifiable through frontend but by making 
+      //true the following field we make it only modifiable through servers..
+      httpOnly : true,
+      secure : true
+    }
+    
+    return res.status(200)
+    .clearCookie("accessToken",options)
+    .clearCookie("refreshToken",options)
+    .json(new ApiResponse(200,{},"User logged out"))
+
+
+})
+
+export {registerUser,
+        loginUser,
+        logoutUser
+}

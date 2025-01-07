@@ -6,7 +6,7 @@ import dotenv from "dotenv" // import feature is not given to the doucmentation 
 import connectDB from "./db/index.js"  //it's important to write the file index.js... otherwise will give error..
 import {app} from "./app.js"
 dotenv.config({
-    path : './env'
+    path : './.env'
 })
 
 connectDB() //calling to connect the DB..

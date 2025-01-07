@@ -14,3 +14,6 @@ class ApiError extends Error{
         }
     }
 }
+
+//the error was, i missed to export it
+export {ApiError}

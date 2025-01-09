@@ -6,6 +6,7 @@ import { ApiResponse } from "../utils/ApiResponse.js"
 
 import jwt from "jsonwebtoken"
 import mongoose  from "mongoose"
+import { uptime } from "process"
 
 const generateAccessAndRefreshToken = async(userId) =>{
 
@@ -248,8 +249,121 @@ const refreshAccessToken = asyncHandler(async(req,res) =>{
 
 })
 
+//Lec : 17
+const changeCurrentPassword = asyncHandler(async(req,res) =>{
+   const {oldPassword,newPassword,confirmPassword} = req.body;  //adding a new parameter as confirmPassword
+
+   if(!(confirmPassword===newPassword)) throw new ApiError(400,"confirm password mismatched..")
+
+   //since user has the password change option , then he must be logged in ,so it
+   const user =  await User.findById(req.user?._id)
+
+   //just checking the oldPassword
+  const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
+
+  if(!isPasswordCorrect) throw new ApiError(400,"Invalid password..")
+
+   user.password = newPassword;
+   //now just save ,before which a pre - hook is called
+   await user.save({validateBeforeSave : false}) //since we db is in another continent
+   
+   return res.status(200).json(new ApiResponse(200,{},"Password changed Successfully"))
+    
+})
+
+//Lec : 17
+const getCurrentUser = asyncHandler(async(req,res)=>{
+   return res.status(200).json(200,req.user,"current user fetched successfully"); //since user field is inserted by middleware..
+})
+
+//Lec : 17
+const updateAccountDetails = asyncHandler(async(req,res)=>{
+   const {fullName,email} = req.body
+
+   if(fullName && email) throw new ApiError(400,"All fields are required")
+      
+   const user = User.findByIdAndUpdate(
+      req.user?._id,
+      {
+         $set :{ //just updating the fields
+            fullName : fullName,
+            email  //since both are same..
+         }
+      },
+      {new : true} //here true indicate that it will return the updated data of user
+   ).select("-password"); //just remove the password..
+
+
+   return req.status(200)
+   .json(new ApiResponse(200,user,"Account details updated successfully"))
+})
+
+//Lec : 17 - updating the files..
+
+const updateUserAvatar = asyncHandler(async(req,res)=>{
+    const avatarLocalPath = req.file?.path; //
+
+    if(!avatarLocalPath) throw new ApiError(400,"Avatar file is missing..")
+   
+    const avatar = await uploadOnCloudinary(avatarLocalPath)
+
+    if(!avatar.url) throw new ApiError(400,"Error while uploading on avatar");
+
+    //now updating the link : my approach
+   /* const user = await User.findById(req.user?._id); //since user is inserted in req by middleware
+
+    user.avatar = avatar.url;
+    await user.save()*/
+
+    //sir's approach
+   const user = await User.findByIdAndUpdate(
+      req.user?._id,
+      {
+         $set:{
+            avatar : avatar.url
+         }
+      },
+      {new : true}
+   ).select("-password");
+
+   return res.status(200).json(200,user,"Avatar updated successfully..")
+
+
+})
+
+//Lec : 17 : updating the coverImage
+const updateCoverImage = asyncHandler(async(req,res)=>{
+   const coverImageLocalPath = req.file?.path;
+
+   if(!coverImageLocalPath) throw new ApiError(400,"CoverImage not found in temp")
+
+   //upload on cloudinary
+   const coverImage = uploadOnCloudinary(coverImageLocalPath);
+   if(!coverImageLocalPath) throw new ApiError(400,"Error in uploading coverImage on cloudinary")
+
+   //fetching user & updaing
+   const user = await User.findByIdAndUpdate(
+      req.user?._id,
+      {
+         $set : {
+            coverImage : coverImage.url
+         }
+      },
+      {new : true}
+   ).select("-password")
+
+   return res.status(200).json(200,user,"CoverImage updated successfully..")
+
+
+})
+
 export {registerUser,
         loginUser,
         logoutUser,
-        refreshAccessToken
+        refreshAccessToken,
+        changeCurrentPassword,
+        getCurrentUser,
+        updateAccountDetails,
+        updateUserAvatar,
+        updateCoverImage
 }

@@ -87,7 +87,7 @@ const registerUser = asyncHandler( async (req,res)=>{
     coverImage: coverImage?.url || "", //optional ? means
     email,
     password,
-    username : username.toLowerCase()
+    username : username
    })
 
    const createdUser = await User.findById(user._id).select(
@@ -122,12 +122,12 @@ const loginUser = asyncHandler( async (req,res) =>{
     */
    const {email, username, password} = req.body;  //taken data from database
 
-   if(!username || !email){
+   if(!username && !email){
       throw new ApiError(400,"username or email is required");
    }
 
    //Now finding the username or email from the database using findOne() ,method from MongoDB
-   const user =  await User.findOne({  //$or : mongoDB operator
+   const user =  await User.findOne({  //or : mongoDB operator
       $or: [{username},{email}]  //used await bcz DB is in another continent
    })
 
